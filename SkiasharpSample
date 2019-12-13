@@ -1,0 +1,53 @@
+// Use this function to crop a screen shot to a specific element.  
+public byte[] test(byte[] screenshotData, View element)
+{
+    //  locate IntPtr to byte[] of uncropped screenshot
+    GCHandle gch = GCHandle.Alloc(screenshotData, GCHandleType.Pinned);
+    IntPtr addr = gch.AddrOfPinnedObject();
+
+    //  assign initial bounds
+    SKImageInfo info = new SKImageInfo((int)App.Current.MainPage.Width,
+        (int)App.Current.MainPage.Height);
+
+    //  create initial pixel map
+    using SKPixmap pixmap = new SKPixmap(info, addr);
+    //  Release
+    gch.Free();
+
+    //  create bitmap
+    using SKBitmap bitmap = new SKBitmap();
+    //  assign pixel data
+    bitmap.InstallPixels(pixmap);
+
+    //  create surface
+    using SKSurface surface = SKSurface.Create(info);
+    //  create a canvas for drawing
+    using SKCanvas canvas = surface.Canvas;
+    //  draw
+    canvas.DrawBitmap(bitmap, info.Rect);
+
+    //  get an image subset to save
+    SKImage image = surface.Snapshot();
+    SKRectI rec = new SKRectI((int)element.Bounds.Left, (int)element.Bounds.Top,
+        (int)element.Bounds.Right, (int)element.Bounds.Bottom);
+
+    //  crop image
+    //image = image.Subset(rec);
+
+    //  bounds of cropped image
+    //SKImageInfo info2 = new SKImageInfo(rec.Width, rec.Height);
+
+    //  size
+    //int size = info2.RowBytes * info2.Height;
+    int size = info.RowBytes * info.Height;
+
+    using SKPixmap pmap = image.PeekPixels();
+    IntPtr ptr = Marshal.AllocHGlobal(size);
+    pmap.ReadPixels(pmap.Info, ptr, pmap.RowBytes);
+
+    byte[] managedArray = new byte[size];
+    Marshal.Copy(ptr, managedArray, 0, size);
+    image.Dispose();
+
+    return managedArray;
+}
